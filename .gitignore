@@ -56,6 +56,15 @@ ehthumbs.db
 uploads/*
 !uploads/.gitkeep
 
+# Generated and sample files
+*.docx
+*.doc
+paper_code.txt
+sample_paper.txt
+sampleFormat.txt
+test_plagiarism.py
+images/
+
 # Logs
 *.log
 npm-debug.log*
