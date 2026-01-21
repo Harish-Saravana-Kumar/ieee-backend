@@ -2,6 +2,8 @@ import logging
 import re
 import tempfile
 from io import BytesIO
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for server
 import matplotlib.pyplot as plt
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
