@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Request, File, UploadFile
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Header
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -10,6 +10,10 @@ from io import BytesIO
 from PIL import Image
 from utils.ieee_generator import generate_ieee_paper
 from utils.plagiarism_checker import analyze_plagiarism
+from utils.auth import (
+    SignUpRequest, LoginRequest, AuthResponse, LogoutRequest,
+    signup_user, login_user, logout_user, verify_token, get_user_by_id
+)
 
 app = FastAPI()
 
@@ -78,6 +82,90 @@ async def general_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
 
 # ----------- Main Endpoint -----------
+
+@app.post("/auth/signup", response_model=AuthResponse)
+async def signup(request: SignUpRequest):
+    """Handle user signup"""
+    success, message, token, user = signup_user(
+        request.email,
+        request.password,
+        request.full_name
+    )
+    
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    
+    return {
+        "success": True,
+        "message": message,
+        "token": token,
+        "user": user
+    }
+
+@app.post("/auth/login", response_model=AuthResponse)
+async def login(request: LoginRequest):
+    """Handle user login"""
+    success, message, token, user = login_user(request.email, request.password)
+    
+    if not success:
+        raise HTTPException(status_code=401, detail=message)
+    
+    return {
+        "success": True,
+        "message": message,
+        "token": token,
+        "user": user
+    }
+
+@app.get("/auth/verify")
+async def verify_auth(authorization: Optional[str] = Header(None)):
+    """Verify authentication token"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    
+    try:
+        token = authorization.split(" ")[1] if " " in authorization else authorization
+        user_id = verify_token(token)
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        
+        user = get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = {
+            "id": user.get("_id"),
+            "email": user.get("email"),
+            "full_name": user.get("full_name")
+        }
+        
+        return {
+            "success": True,
+            "user": user_data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/auth/logout")
+async def logout(request: LogoutRequest):
+    """Handle user logout"""
+    try:
+        success, message = logout_user(request.token)
+        
+        if not success:
+            raise HTTPException(status_code=400, detail=message)
+        
+        return {
+            "success": True,
+            "message": message
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/generate")
 async def generate_paper(data: PaperData):

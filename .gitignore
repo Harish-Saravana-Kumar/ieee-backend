@@ -48,6 +48,15 @@ htmlcov/
 Thumbs.db
 .DS_Store?
 ._*
+
+# Uploads and temporary files
+uploads/
+*.docx
+*.txt
+
+# Cache
+.pytest_cache/
+*.pyc
 .Spotlight-V100
 .Trashes
 ehthumbs.db
