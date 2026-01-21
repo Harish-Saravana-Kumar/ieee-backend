@@ -11,7 +11,16 @@ from typing import List, Dict
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-model = SentenceTransformer('all-MiniLM-L6-v2')  # Light, fast BERT model
+# Lazy load model - only load when needed
+_model = None
+
+def get_model():
+    """Lazy load the sentence transformer model to save memory at startup"""
+    global _model
+    if _model is None:
+        logger.info("Loading SentenceTransformer model...")
+        _model = SentenceTransformer('all-MiniLM-L6-v2')
+    return _model
 
 def extract_text_from_docx(file_path):
     try:
@@ -49,6 +58,7 @@ def check_citations(text: str, references: List[str]) -> Dict[str, bool]:
     return citation_check
 
 def compute_semantic_similarity(sentences: List[str], threshold: float = 0.85) -> List[Dict]:
+    model = get_model()
     embeddings = model.encode(sentences, convert_to_tensor=True)
     sims = cosine_similarity(embeddings.cpu(), embeddings.cpu())
     
